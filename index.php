@@ -16,7 +16,8 @@ $openai = OpenAI::client($_ENV['API_KEY']);
 $assistantId = $_ENV['ASSISTANTS_ID'];
 
 // Función para conectarse a la base de datos MySQL
-function connectToDatabase() {
+function connectToDatabase()
+{
     try {
         $dsn = "mysql:host=" . $_ENV['HOST'] . ";dbname=" . $_ENV['DATABASE'];
         $pdo = new PDO($dsn, $_ENV['USER'], $_ENV['PASSWORD']);
@@ -29,7 +30,8 @@ function connectToDatabase() {
 }
 
 // Consulta a la base de datos
-function fetchDataFromDatabase($pdo) {
+function fetchDataFromDatabase($pdo)
+{
     $sql = "SELECT * FROM Fotografos"; // Ajusta el nombre de la tabla y columnas
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
@@ -37,12 +39,14 @@ function fetchDataFromDatabase($pdo) {
 }
 
 // Crear un nuevo thread
-function createThread($openai) {
+function createThread($openai)
+{
     return $openai->threads()->create([]); // Ajustado
 }
 
 // Agregar un mensaje al thread
-function addMessage($openai, $pdo, $threadId, $message) {
+function addMessage($openai, $pdo, $threadId, $message)
+{
     // Obtener datos de la base de datos
     $dataFromDb = fetchDataFromDatabase($pdo);
 
@@ -59,14 +63,16 @@ function addMessage($openai, $pdo, $threadId, $message) {
 }
 
 // Ejecutar el asistente
-function runAssistant($openai, $threadId, $assistantId) {
+function runAssistant($openai, $threadId, $assistantId)
+{
     return $openai->threads()->runs()->create($threadId, [
         'assistant_id' => $assistantId,
     ]);
 }
 
 // Revisar el estado del run
-function checkingStatus($openai, $threadId, $runId) {
+function checkingStatus($openai, $threadId, $runId)
+{
     $runObject = $openai->threads()->runs()->retrieve($threadId, $runId);
     $status = $runObject->status;
 
@@ -95,16 +101,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $runId = $runResponse->id;
 
         // Chequear el estado periódicamente
-        sleep(5); // Espera de 5 segundos
+        sleep(10); // Espera de 5 segundos
         $response = checkingStatus($openai, $threadId, $runId);
 
+        header('Content-Type: application/json');
         echo json_encode(['response' => $response]);
+        die();
     }
-
-    // Ruta para manejar /thread
-
-}elseif ($_GET['action'] === 'thread') {
+} elseif ($_GET['action'] === 'thread') {
     $thread = createThread($openai);
+    header('Content-Type: application/json');
     echo json_encode(['threadId' => $thread->id]);
+    die();
 }
 
