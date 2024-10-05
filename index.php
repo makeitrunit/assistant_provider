@@ -18,8 +18,8 @@ $assistantId = $_ENV['ASSISTANTS_ID'];
 // Función para conectarse a la base de datos MySQL
 function connectToDatabase() {
     try {
-        $dsn = "mysql:host=" . $_ENV['DB_HOST'] . ";dbname=" . $_ENV['DB_NAME'];
-        $pdo = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS']);
+        $dsn = "mysql:host=" . $_ENV['HOST'] . ";dbname=" . $_ENV['DATABASE'];
+        $pdo = new PDO($dsn, $_ENV['USER'], $_ENV['PASSWORD']);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         return $pdo;
     } catch (PDOException $e) {
