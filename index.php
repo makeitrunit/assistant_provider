@@ -1,5 +1,9 @@
 <?php
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 require 'vendor/autoload.php'; // Cargar las dependencias de Composer
 use OpenAI\Client as OpenAIClient;
 use OpenAI\Transporter; // Asegúrate de importar la clase Transporter
