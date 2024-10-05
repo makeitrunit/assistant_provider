@@ -51,12 +51,9 @@ function addMessage($openai, $pdo, $threadId, $message)
     $dataFromDb = fetchDataFromDatabase($pdo);
 
     // Formar el mensaje
-    $chat = "Aqui tienes los datos los cuales usaremos de ahora en adelante: " . json_encode($dataFromDb, JSON_UNESCAPED_UNICODE) . ". Responde esta peticion: ".$message;
-
-
-    $testData = json_encode(['testKey' => 'testValue'], JSON_UNESCAPED_UNICODE);
-    $chat = "Aquí tienes los datos: " . $testData . ". Responde esta petición: " . $message;
-
+    $chat = "Aqui tienes los datos los cuales usaremos de ahora en adelante: " . json_encode([
+            'data' => $dataFromDb,
+        ], JSON_UNESCAPED_UNICODE, 512) . ". Responde esta peticion: ".$message;
 
     // Enviar el mensaje al thread
     return $openai->threads()->messages()->create($threadId, [
