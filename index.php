@@ -4,18 +4,15 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-require 'vendor/autoload.php'; // Cargar las dependencias de Composer
+require 'vendor/autoload.php';
 
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
-
-// Inicializar cliente OpenAI
 
 $openai = OpenAI::client($_ENV['API_KEY']);
 
 $assistantId = $_ENV['ASSISTANTS_ID'];
 
-// Función para conectarse a la base de datos MySQL
 function connectToDatabase()
 {
     try {
@@ -29,44 +26,40 @@ function connectToDatabase()
     }
 }
 
-// Consulta a la base de datos
 function fetchDataFromDatabase($pdo)
 {
-    $sql = "SELECT * FROM Fotografos"; // Ajusta el nombre de la tabla y columnas
+    $sql = "SELECT * FROM Fotografos";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Crear un nuevo thread
 function createThread($openai)
 {
-    return $openai->threads()->create([]); // Ajustado
+    return $openai->threads()->create([]);
 }
 
-// Agregar un mensaje al thread
 function addMessage($openai, $pdo, $threadId, $message)
 {
-    // Obtener datos de la base de datos
     $dataFromDb = fetchDataFromDatabase($pdo);
-
+    array_walk_recursive($dataFromDb, function (&$value) {
+        $value = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+    });
     $jsonData = json_encode(['data' => $dataFromDb]);
+
 
     if ($jsonData === false) {
         echo 'Error en la codificación JSON: ' . json_last_error_msg();
     }
-    // Formar el mensaje
+
     $chat = "Aqui tienes los datos los cuales usaremos de ahora en adelante: " . $jsonData . ". Responde esta peticion: ".$message;
 
-
-    // Enviar el mensaje al thread
     return $openai->threads()->messages()->create($threadId, [
         'role' => 'user',
         'content' => $chat,
     ]);
 }
 
-// Ejecutar el asistente
 function runAssistant($openai, $threadId, $assistantId)
 {
     return $openai->threads()->runs()->create($threadId, [
@@ -74,7 +67,6 @@ function runAssistant($openai, $threadId, $assistantId)
     ]);
 }
 
-// Revisar el estado del run
 function checkingStatus($openai, $threadId, $runId)
 {
     $runObject = $openai->threads()->runs()->retrieve($threadId, $runId);
@@ -84,22 +76,20 @@ function checkingStatus($openai, $threadId, $runId)
         $messagesList = $openai->threads()->messages()->list($threadId);
         $messages = $messagesList->data; // Ajustado según la estructura de datos
 
-        // Verifica si hay mensajes antes de acceder al último
+
         if (!empty($messages)) {
-            return $messages[0]->content[0]['text']; // Retorna el último mensaje
+            return $messages[0]->content[0]['text'];
         }
     }
 
-    return null; // Retorna null si no hay mensajes
+    return null;
 }
 
-// Procesar las solicitudes del servidor
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Conectar a la base de datos
-    $pdo = connectToDatabase();
 
-    // Ruta para manejar /message
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     if ($_POST['action'] === 'message') {
+        $pdo = connectToDatabase();
         $message = $_POST['message'];
         $threadId = $_POST['threadId'];
 
@@ -107,8 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $runResponse = runAssistant($openai, $threadId, $assistantId);
         $runId = $runResponse->id;
 
-        // Chequear el estado periódicamente
-        sleep(10); // Espera de 5 segundos
+
+        sleep(5);
         $response = checkingStatus($openai, $threadId, $runId);
 
         header('Content-Type: application/json');
