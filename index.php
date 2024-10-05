@@ -38,7 +38,7 @@ function fetchDataFromDatabase($pdo) {
 
 // Crear un nuevo thread
 function createThread($openai) {
-    return $openai->threads->create(); // Ajustado
+    return $openai->threads()->create([]); // Ajustado
 }
 
 // Agregar un mensaje al thread
@@ -52,7 +52,7 @@ function addMessage($openai, $pdo, $threadId, $message) {
         ". Continua la conversación: \"$message\".";
 
     // Enviar el mensaje al thread
-    return $openai->threads->messages->create($threadId, [
+    return $openai->threads()->messages()->create($threadId, [
         'role' => 'user',
         'content' => $chat,
     ]);
@@ -67,11 +67,11 @@ function runAssistant($openai, $threadId, $assistantId) {
 
 // Revisar el estado del run
 function checkingStatus($openai, $threadId, $runId) {
-    $runObject = $openai->threads->runs->retrieve($threadId, $runId);
+    $runObject = $openai->threads()->runs()->retrieve($threadId, $runId);
     $status = $runObject->status;
 
     if ($status === 'completed') {
-        $messagesList = $openai->threads->messages->list($threadId);
+        $messagesList = $openai->threads()->messages()->list($threadId);
         $messages = $messagesList->data; // Ajustado según la estructura de datos
 
         return end($messages)->content; // Retorna el último mensaje
