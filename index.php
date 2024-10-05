@@ -5,9 +5,6 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require 'vendor/autoload.php'; // Cargar las dependencias de Composer
-use OpenAI\Client as OpenAIClient;
-use OpenAI\Transporter; // Asegúrate de importar la clase Transporter
-use PDO;
 
 const DB_HOST = "";
 const DB_NAME = "";
@@ -17,10 +14,8 @@ const ASSISTANTS_ID = "";
 const API_KEY = ""; // Debes definir la clave aquí o usar $_ENV si lo prefieres
 
 // Inicializar cliente OpenAI
-$transporter = new Transporter(); // Crea una instancia del transporter
-$openai = new OpenAIClient($transporter,[
-    'api_key' => API_KEY,
-]);
+
+$openai = OpenAI::client(API_KEY);
 
 $assistantId = ASSISTANTS_ID;
 
