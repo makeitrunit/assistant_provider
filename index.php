@@ -48,7 +48,9 @@ function createThread($openai)
 function addMessage($openai, $pdo, $threadId, $message)
 {
     // Obtener datos de la base de datos
-    $dataFromDb = fetchDataFromDatabase($pdo);
+    $dataFromDb = array_map(function($item) {
+        return array_map('utf8_encode', $item);
+    }, fetchDataFromDatabase($pdo));
 
     var_dump($dataFromDb);
     // Formar el mensaje
