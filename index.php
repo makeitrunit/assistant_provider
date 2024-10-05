@@ -60,7 +60,7 @@ function addMessage($openai, $pdo, $threadId, $message) {
 
 // Ejecutar el asistente
 function runAssistant($openai, $threadId, $assistantId) {
-    return $openai->threads->runs->create($threadId, [
+    return $openai->threads()->runs()->create($threadId, [
         'assistant_id' => $assistantId,
     ]);
 }
