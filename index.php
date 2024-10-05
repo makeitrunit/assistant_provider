@@ -49,7 +49,6 @@ function addMessage($openai, $pdo, $threadId, $message)
 {
     // Obtener datos de la base de datos
     $dataFromDb = fetchDataFromDatabase($pdo);
-    var_dump($dataFromDb);
     // Formar el mensaje
     $chat = "No olvides que tienes esta fuente de datos (desde la base de datos): "
         . json_encode($dataFromDb) .
