@@ -1,28 +1,28 @@
 <?php
 
 require 'vendor/autoload.php'; // Cargar las dependencias de Composer
-
-use GuzzleHttp\Client;
 use OpenAI\Client as OpenAIClient;
-use Dotenv\Dotenv;
 use PDO;
 
-// Cargar variables de entorno
-$dotenv = Dotenv::createImmutable(__DIR__);
-$dotenv->load();
+const DB_HOST="";
+const DB_NAME="";
+const DB_USER="";
+const DB_PASS="";
+const ASSISTANTS_ID = "";
+const API_KEY = "";
 
 // Inicializar cliente OpenAI
 $openai = OpenAIClient::factory([
     'apiKey' => $_ENV['API_KEY']
 ]);
 
-$assistantId = $_ENV['ASSISTANTS_ID'];
+$assistantId = ASSISTANTS_ID;
 
 // Función para conectarse a la base de datos MySQL
 function connectToDatabase() {
     try {
-        $dsn = "mysql:host=" . $_ENV['DB_HOST'] . ";dbname=" . $_ENV['DB_NAME'];
-        $pdo = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASSWORD']);
+        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME;
+        $pdo = new PDO($dsn, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         return $pdo;
     } catch (PDOException $e) {
@@ -33,7 +33,7 @@ function connectToDatabase() {
 
 // Consulta a la base de datos en lugar de llamada a la API externa
 function fetchDataFromDatabase($pdo) {
-    $sql = "SELECT * FROM datos_externos"; // Asegúrate de ajustar el nombre de la tabla y columnas
+    $sql = "SELECT * FROM Fotografos"; // Asegúrate de ajustar el nombre de la tabla y columnas
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Ruta para manejar /thread
-    elseif ($_POST['action'] === 'thread') {
+    elseif ($_GET['action'] === 'thread') {
         $thread = createThread($openai);
         echo json_encode(['threadId' => $thread->id]);
     }
