@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat con ChatGPT</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        #chat {
+            width: 60%;
+            max-width: 800px;
+            margin: 20px auto;
+        }
+
+        .message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .user {
+            background-color: #d1e7ff;
+            text-align: right;
+        }
+
+        .assistant {
+            background-color: #f1f1f1;
+        }
+
+        #chat-box {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        #input-area {
+            display: flex;
+        }
+
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        #send-btn {
+            padding: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chat">
+    <div id="chat-box">
+        <!-- Los mensajes aparecerán aquí -->
+    </div>
+
+    <div id="input-area">
+        <input type="text" id="message-input" placeholder="Escribe un mensaje..."/>
+        <button id="send-btn">Enviar</button>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    const chatBox = document.getElementById('chat-box');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-btn');
+    let threadId = ''; // Cambia esto según tu implementación
+
+
+    fetch('http://localhost:3000/thread', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }).then(response => response.json()) // Convertir la respuesta a JSON
+        .then(data => {
+            threadId = data.threadId; // Almacenar el threadId en la variable
+            console.log('Thread ID recibido:', threadId);
+        })
+        .catch(error => {
+            console.error('Error al crear el hilo:', error);
+        });
+
+    sendButton.addEventListener('click', async () => {
+        const message = messageInput.value;
+        if (message.trim() === '') return;
+
+        // Añadir mensaje del usuario al chat
+        appendMessage('user', message);
+
+        const response = await fetch('http://localhost:3000/message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({threadId: threadId, message: message})
+        });
+
+        const data = await response.json();
+        appendMessage('assistant', data.response.value);
+
+        // Limpiar el input
+        messageInput.value = '';
+    });
+
+    function appendMessage(role, content) {
+        const messageDiv = document.createElement('div');
+
+        messageDiv.classList.add('message');
+        messageDiv.classList.add(role);
+        messageDiv.innerHTML = marked.parse(content);
+        //messageDiv.textContent = content;
+        chatBox.appendChild(messageDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+</script>
+
+</body>
+</html>
