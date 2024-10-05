@@ -52,13 +52,14 @@ function addMessage($openai, $pdo, $threadId, $message)
         return array_map('utf8_encode', $item);
     }, fetchDataFromDatabase($pdo));
 
-    var_dump($dataFromDb);
-    // Formar el mensaje
-    $chat = "Aqui tienes los datos los cuales usaremos de ahora en adelante: " . json_encode([
-            'data' => $dataFromDb,
-        ], JSON_UNESCAPED_UNICODE, 512) . ". Responde esta peticion: ".$message;
+    $jsonData = json_encode(['data' => $dataFromDb], JSON_UNESCAPED_UNICODE);
 
-    var_dump($chat);
+    if ($jsonData === false) {
+        echo 'Error en la codificación JSON: ' . json_last_error_msg();
+    }
+    // Formar el mensaje
+    $chat = "Aqui tienes los datos los cuales usaremos de ahora en adelante: " . $jsonData . ". Responde esta peticion: ".$message;
+
 
     // Enviar el mensaje al thread
     return $openai->threads()->messages()->create($threadId, [
