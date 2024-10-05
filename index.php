@@ -49,6 +49,7 @@ function addMessage($openai, $pdo, $threadId, $message)
 {
     // Obtener datos de la base de datos
     $dataFromDb = fetchDataFromDatabase($pdo);
+
     // Formar el mensaje
     $chat = "No olvides que tienes esta fuente de datos (desde la base de datos): "
         . json_encode($dataFromDb) .
@@ -81,7 +82,7 @@ function checkingStatus($openai, $threadId, $runId)
 
         // Verifica si hay mensajes antes de acceder al último
         if (!empty($messages)) {
-            return end($messages)['text']; // Retorna el valor del texto
+            return $messages[0]->content[0]['text']; // Retorna el último mensaje
         }
     }
 
