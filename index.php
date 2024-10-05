@@ -51,9 +51,9 @@ function addMessage($openai, $pdo, $threadId, $message)
     $dataFromDb = fetchDataFromDatabase($pdo);
 
     // Formar el mensaje
-    $chat = "No olvides que tienes esta fuente de datos (desde la base de datos): "
-        . json_encode($dataFromDb) .
-        ". Continua la conversación: \"$message\".";
+    $chat = "Aqui tienes los datos los cuales usaremos de ahora en adelante: " . json_encode($dataFromDb, JSON_UNESCAPED_UNICODE) . ". Responde esta peticion: ".$message;
+
+    var_dump($chat);
 
     // Enviar el mensaje al thread
     return $openai->threads()->messages()->create($threadId, [
