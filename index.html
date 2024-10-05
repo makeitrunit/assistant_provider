@@ -74,7 +74,7 @@
     let threadId = ''; // Cambia esto según tu implementación
 
 
-    fetch('http://localhost:3000/thread', {
+    fetch('http://chat.makeitrunit.com/index.php?action=thread', {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
@@ -95,12 +95,12 @@
         // Añadir mensaje del usuario al chat
         appendMessage('user', message);
 
-        const response = await fetch('http://localhost:3000/message', {
+        const response = await fetch('http://chat.makeitrunit.com/index.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({threadId: threadId, message: message})
+            body: JSON.stringify({threadId: threadId, message: message, action:'message'})
         });
 
         const data = await response.json();
