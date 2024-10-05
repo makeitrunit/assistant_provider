@@ -49,7 +49,7 @@ function addMessage($openai, $pdo, $threadId, $message)
 {
     // Obtener datos de la base de datos
     $dataFromDb = fetchDataFromDatabase($pdo);
-
+    var_dump($dataFromDb);
     // Formar el mensaje
     $chat = "No olvides que tienes esta fuente de datos (desde la base de datos): "
         . json_encode($dataFromDb) .
@@ -76,15 +76,13 @@ function checkingStatus($openai, $threadId, $runId)
     $runObject = $openai->threads()->runs()->retrieve($threadId, $runId);
     $status = $runObject->status;
 
-    var_dump($status);
-
     if ($status === 'completed') {
         $messagesList = $openai->threads()->messages()->list($threadId);
         $messages = $messagesList->data; // Ajustado según la estructura de datos
 
         // Verifica si hay mensajes antes de acceder al último
         if (!empty($messages)) {
-            return end($messages)->content; // Retorna el último mensaje
+            return end($messages)['text']; // Retorna el valor del texto
         }
     }
 
