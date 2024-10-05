@@ -48,11 +48,9 @@ function createThread($openai)
 function addMessage($openai, $pdo, $threadId, $message)
 {
     // Obtener datos de la base de datos
-    $dataFromDb = array_map(function($item) {
-        return array_map('utf8_encode', $item);
-    }, fetchDataFromDatabase($pdo));
+    $dataFromDb = fetchDataFromDatabase($pdo);
 
-    $jsonData = json_encode(['data' => $dataFromDb], JSON_UNESCAPED_UNICODE);
+    $jsonData = json_encode(['data' => $dataFromDb]);
 
     if ($jsonData === false) {
         echo 'Error en la codificación JSON: ' . json_last_error_msg();
