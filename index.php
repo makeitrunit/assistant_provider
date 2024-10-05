@@ -76,14 +76,19 @@ function checkingStatus($openai, $threadId, $runId)
     $runObject = $openai->threads()->runs()->retrieve($threadId, $runId);
     $status = $runObject->status;
 
+    var_dump($status);
+
     if ($status === 'completed') {
         $messagesList = $openai->threads()->messages()->list($threadId);
         $messages = $messagesList->data; // Ajustado según la estructura de datos
 
-        return end($messages)->content; // Retorna el último mensaje
+        // Verifica si hay mensajes antes de acceder al último
+        if (!empty($messages)) {
+            return end($messages)->content; // Retorna el último mensaje
+        }
     }
 
-    return null;
+    return null; // Retorna null si no hay mensajes
 }
 
 // Procesar las solicitudes del servidor
