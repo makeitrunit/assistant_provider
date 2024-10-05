@@ -6,24 +6,20 @@ error_reporting(E_ALL);
 
 require 'vendor/autoload.php'; // Cargar las dependencias de Composer
 
-const DB_HOST = "";
-const DB_NAME = "";
-const DB_USER = "";
-const DB_PASS = "";
-const ASSISTANTS_ID = "";
-const API_KEY = ""; // Debes definir la clave aquí o usar $_ENV si lo prefieres
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
 
 // Inicializar cliente OpenAI
 
-$openai = OpenAI::client(API_KEY);
+$openai = OpenAI::client($_ENV['API_KEY']);
 
-$assistantId = ASSISTANTS_ID;
+$assistantId = $_ENV['ASSISTANTS_ID'];
 
 // Función para conectarse a la base de datos MySQL
 function connectToDatabase() {
     try {
-        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME;
-        $pdo = new PDO($dsn, DB_USER, DB_PASS);
+        $dsn = "mysql:host=" . $_ENV['DB_HOST'] . ";dbname=" . $_ENV['DB_NAME'];
+        $pdo = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS']);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         return $pdo;
     } catch (PDOException $e) {
