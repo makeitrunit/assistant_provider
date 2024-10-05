@@ -87,11 +87,14 @@ function checkingStatus($openai, $threadId, $runId)
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
 
-    if ($_POST['action'] === 'message') {
+    if ($data['action'] === 'message') {
         $pdo = connectToDatabase();
-        $message = $_POST['message'];
-        $threadId = $_POST['threadId'];
+
+        $message = $data['message'];
+        $threadId = $data['threadId'];
 
         $messageResponse = addMessage($openai, $pdo, $threadId, $message);
         $runResponse = runAssistant($openai, $threadId, $assistantId);
