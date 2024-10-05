@@ -4,16 +4,16 @@ require 'vendor/autoload.php'; // Cargar las dependencias de Composer
 use OpenAI\Client as OpenAIClient;
 use PDO;
 
-const DB_HOST="";
-const DB_NAME="";
-const DB_USER="";
-const DB_PASS="";
+const DB_HOST = "";
+const DB_NAME = "";
+const DB_USER = "";
+const DB_PASS = "";
 const ASSISTANTS_ID = "";
-const API_KEY = "";
+const API_KEY = ""; // Debes definir la clave aquí o usar $_ENV si lo prefieres
 
 // Inicializar cliente OpenAI
-$openai = OpenAIClient::factory([
-    'apiKey' => $_ENV['API_KEY']
+$openai = new OpenAIClient([
+    'api_key' => API_KEY,
 ]);
 
 $assistantId = ASSISTANTS_ID;
@@ -31,19 +31,17 @@ function connectToDatabase() {
     }
 }
 
-// Consulta a la base de datos en lugar de llamada a la API externa
+// Consulta a la base de datos
 function fetchDataFromDatabase($pdo) {
-    $sql = "SELECT * FROM Fotografos"; // Asegúrate de ajustar el nombre de la tabla y columnas
+    $sql = "SELECT * FROM Fotografos"; // Ajusta el nombre de la tabla y columnas
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
-    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    return $data;
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 // Crear un nuevo thread
 function createThread($openai) {
-    $thread = $openai->beta->threads->create();
-    return $thread;
+    return $openai->threads->create(); // Ajustado
 }
 
 // Agregar un mensaje al thread
@@ -51,37 +49,33 @@ function addMessage($openai, $pdo, $threadId, $message) {
     // Obtener datos de la base de datos
     $dataFromDb = fetchDataFromDatabase($pdo);
 
-    // Formar el mensaje con la fuente de datos de la base de datos
+    // Formar el mensaje
     $chat = "No olvides que tienes esta fuente de datos (desde la base de datos): "
-            . json_encode($dataFromDb) .
-            ". Continua la conversación: \"$message\".";
+        . json_encode($dataFromDb) .
+        ". Continua la conversación: \"$message\".";
 
     // Enviar el mensaje al thread
-    $response = $openai->beta->threads->messages->create($threadId, [
+    return $openai->threads->messages->create($threadId, [
         'role' => 'user',
         'content' => $chat,
     ]);
-
-    return $response;
 }
 
 // Ejecutar el asistente
 function runAssistant($openai, $threadId, $assistantId) {
-    $response = $openai->beta->threads->runs->create($threadId, [
+    return $openai->threads->runs->create($threadId, [
         'assistant_id' => $assistantId,
     ]);
-
-    return $response;
 }
 
-// Revisar el estado del run y obtener el resultado
+// Revisar el estado del run
 function checkingStatus($openai, $threadId, $runId) {
-    $runObject = $openai->beta->threads->runs->retrieve($threadId, $runId);
+    $runObject = $openai->threads->runs->retrieve($threadId, $runId);
     $status = $runObject->status;
 
     if ($status === 'completed') {
-        $messagesList = $openai->beta->threads->messages->list($threadId);
-        $messages = $messagesList->body->data;
+        $messagesList = $openai->threads->messages->list($threadId);
+        $messages = $messagesList->data; // Ajustado según la estructura de datos
 
         return end($messages)->content; // Retorna el último mensaje
     }
@@ -103,8 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $runResponse = runAssistant($openai, $threadId, $assistantId);
         $runId = $runResponse->id;
 
-        // Chequear el estado periódicamente (aquí simplificado para la demo)
-        sleep(5); // Espera de 5 segundos para simular el polling
+        // Chequear el estado periódicamente
+        sleep(5); // Espera de 5 segundos
         $response = checkingStatus($openai, $threadId, $runId);
 
         echo json_encode(['response' => $response]);
