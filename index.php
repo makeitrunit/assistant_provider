@@ -104,7 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Ruta para manejar /thread
     elseif ($_GET['action'] === 'thread') {
         $thread = createThread($openai);
+        var_dump($thread);
         echo json_encode(['threadId' => $thread->id]);
+        die();
     }
 }
 
