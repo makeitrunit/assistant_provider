@@ -1,3 +1,4 @@
+require('dotenv').config()
 const Sequelize = require('@sequelize/core');
 
 const sequelize = new Sequelize({
