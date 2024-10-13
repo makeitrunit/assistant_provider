@@ -1,0 +1,82 @@
+{
+  "data": [
+    {
+      "id": 1,
+      "nombre": "Adrian Ribas Photo",
+      "categoria": "Fotógrafos",
+      "valoracion": "5.0 Fantástico",
+      "opinion": "3 opiniones",
+      "costo": "Precio desde 1.000€",
+      "invitados": null,
+      "datos_interes": null,
+      "informacion": "Información/En Bodas.net desde 2023/Última actividad 03/10/2024",
+      "mas_informacion": "Más información#¿Qué servicios ofreces?/Foto/P...",
+      "preguntas_frecuentes": "Preguntas frecuentes sobre Adrian Ribas Photo#..."
+    },
+    {
+      "id": 1,
+      "nombre": "Adrian Ribas Photo",
+      "categoria": "Fotógrafos",
+      "valoracion": "5.0 Fantástico",
+      "opinion": "3 opiniones",
+      "costo": "Precio desde 1.000€",
+      "invitados": null,
+      "datos_interes": null,
+      "informacion": "Información/En Bodas.net desde 2023/Última actividad 03/10/2024",
+      "mas_informacion": "Más información#¿Qué servicios ofreces?/Foto/P...",
+      "preguntas_frecuentes": "Preguntas frecuentes sobre Adrian Ribas Photo#..."
+    },
+    {
+      "id": 1,
+      "nombre": "Adrian Ribas Photo",
+      "categoria": "Fotógrafos",
+      "valoracion": "5.0 Fantástico",
+      "opinion": "3 opiniones",
+      "costo": "Precio desde 1.000€",
+      "invitados": null,
+      "datos_interes": null,
+      "informacion": "Información/En Bodas.net desde 2023/Última actividad 03/10/2024",
+      "mas_informacion": "Más información#¿Qué servicios ofreces?/Foto/P...",
+      "preguntas_frecuentes": "Preguntas frecuentes sobre Adrian Ribas Photo#..."
+    },
+    {
+      "id": 1,
+      "nombre": "Adrian Ribas Photo",
+      "categoria": "Fotógrafos",
+      "valoracion": "5.0 Fantástico",
+      "opinion": "3 opiniones",
+      "costo": "Precio desde 1.000€",
+      "invitados": null,
+      "datos_interes": null,
+      "informacion": "Información/En Bodas.net desde 2023/Última actividad 03/10/2024",
+      "mas_informacion": "Más información#¿Qué servicios ofreces?/Foto/P...",
+      "preguntas_frecuentes": "Preguntas frecuentes sobre Adrian Ribas Photo#..."
+    },
+    {
+      "id": 2,
+      "nombre": "Cadaqués Photo",
+      "categoria": "Fotógrafos",
+      "valoracion": null,
+      "opinion": null,
+      "costo": "Precio desde 1.500€",
+      "invitados": null,
+      "datos_interes": null,
+      "informacion": "Información/En Bodas.net desde 2024/Última actividad 03/10/2024",
+      "mas_informacion": null,
+      "preguntas_frecuentes": null
+    },
+    {
+      "id": 3,
+      "nombre": "Quesada Fotógrafos",
+      "categoria": "Fotógrafos",
+      "valoracion": "4.9 Excelente",
+      "opinion": "207 opiniones",
+      "costo": "Precio desde 700€",
+      "invitados": null,
+      "datos_interes": null,
+      "informacion": "Información/En Bodas.net desde 2018/Última actividad 03/10/2024",
+      "mas_informacion": "Más información#¿Qué servicios ofreces?/Foto/V...",
+      "preguntas_frecuentes": "Preguntas frecuentes sobre Quesada Fotógrafos#..."
+    }
+  ]
+}
