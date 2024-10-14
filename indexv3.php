@@ -166,7 +166,7 @@ function createThread($openai)
 
 function addMessage($openai, $threadId, $message)
 {
-    return $openai->beta->threads()->messages()->create($threadId, [
+    return $openai->threads()->messages()->create($threadId, [
         'role' => 'user',
         'content' => $message,
     ]);
@@ -177,7 +177,7 @@ function runAssistant($openai, $threadId)
     global $assistantId;
 
     if ($assistantId === null) {
-        $assistant = $openai->beta->assistants()->create([
+        $assistant = $openai->assistants()->create([
             'assistant_id' => $_ENV['ASSISTANT_ID'],
             'instructions' => "Te encargaras de ayudarme a organizar bodas, interactuando con el cliente, " .
                 "donde se te preguntara por categorías, servicios y costos de distintos proveedores que podrás consultar." .
@@ -188,18 +188,18 @@ function runAssistant($openai, $threadId)
         $assistantId = $assistant->id;
     }
 
-    return $openai->beta->threads()->runs()->create($threadId, [
+    return $openai->threads()->runs()->create($threadId, [
         'assistant_id' => $assistantId,
     ]);
 }
 
 function checkingStatus($openai, $threadId, $runId)
 {
-    $runObject = $openai->beta->threads()->runs()->retrieve($threadId, $runId);
+    $runObject = $openai->threads()->runs()->retrieve($threadId, $runId);
     $status = $runObject->status;
 
     if ($status === 'completed') {
-        $messagesList = $openai->beta->threads()->messages()->list($threadId);
+        $messagesList = $openai->threads()->messages()->list($threadId);
         $messages = $messagesList->data;
 
         if (!empty($messages)) {
