@@ -174,21 +174,9 @@ function addMessage($openai, $threadId, $message)
 
 function runAssistant($openai, $threadId)
 {
-    global $assistantId;
-
-    if ($assistantId === null) {
-        $assistant = $openai->assistants()->create([
-            'instructions' => "Te encargaras de ayudarme a organizar bodas, interactuando con el cliente, " .
-                "donde se te preguntara por categorías, servicios y costos de distintos proveedores que podrás consultar." .
-                "El formato Cuando encuentres proveedores debe ser json: [{\"id\": \"id del proveedor\",\"nombre\": \"nombre del proveedor\", \"categoria\": \"categoría\", \"ubicacion\": \"ubicación\", \"precio\": precio, \"imagen\": \"url de la imagen\"}]",
-            'model' => 'gpt-4',
-            'tools' => [CONSULTAR_PROVEEDORES, LISTAR_CATEGORIAS, MAS_INFORMACION],
-        ]);
-        $assistantId = $assistant->id;
-    }
 
     return $openai->threads()->runs()->create($threadId, [
-        'assistant_id' => $assistantId,
+        'assistant_id' => $_ENV['ASSISTANTS_ID'],
     ]);
 }
 
