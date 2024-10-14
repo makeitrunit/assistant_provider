@@ -193,7 +193,7 @@ function checkingStatus($openai, $threadId, $runId)
             return $messages[0]->content[0]['text'];
         }
     } elseif ($status === 'requires_action') {
-        $requiredAction = $runObject->required_action;
+        $requiredAction = $runObject->requiredAction;
 
         if ($requiredAction->type === 'submit_tool_outputs') {
             foreach ($requiredAction->submit_tool_outputs->tool_calls as $tool_call) {
