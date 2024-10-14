@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat con ChatGPT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -31,7 +32,7 @@
         }
 
         #chat-box {
-            height: 400px;
+            height: 80vh;
             overflow-y: auto;
             border: 1px solid #ccc;
             padding: 10px;
@@ -52,6 +53,42 @@
             padding: 10px;
             font-size: 16px;
         }
+
+        #send-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+
+        .lds-dual-ring,
+        .lds-dual-ring:after {
+            box-sizing: border-box;
+        }
+        .lds-dual-ring {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+        }
+        .lds-dual-ring:after {
+            content: " ";
+            display: block;
+            width: 32px;
+            height: 32px;
+            margin: 2px;
+            border-radius: 50%;
+            border: 6.4px solid currentColor;
+            border-color: currentColor transparent currentColor transparent;
+            animation: lds-dual-ring 1.2s linear infinite;
+        }
+        @keyframes lds-dual-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 <body>
@@ -63,14 +100,85 @@
 
     <div id="input-area">
         <input type="text" id="message-input" placeholder="Escribe un mensaje..."/>
-        <button id="send-btn">Enviar</button>
+        <button id="send-btn" disabled>
+            <span id="spinner" style="display: none;" class="lds-dual-ring loader"></span>
+            <span id="send-text">Enviar</span>
+        </button>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
+
+    function appendProveedores(proveedores) {
+        proveedores.forEach(proveedor => {
+            const proveedorDiv = document.createElement('div');
+            proveedorDiv.classList.add('proveedor');
+            proveedorDiv.innerHTML = `
+<div class="w-full mx-auto bg-white shadow-md rounded-lg overflow-hidden flex m-4">
+  <!-- Image -->
+  <div class="w-2/5">
+    <img class="h-full w-full object-cover" src="https://via.placeholder.com/150" alt="Proveedor Imagen">
+    ${proveedor.imagen}
+  </div>
+
+  <!-- Content -->
+  <div class="w-2/3 p-4">
+    <!-- Title and Category -->
+    <div class="mb-2">
+      <h2 class="text-xl font-bold text-gray-800">${proveedor.nombre}</h2>
+      <p class="text-sm text-gray-600">${proveedor.categoria}</p>
+    </div>
+
+    <!-- Costo -->
+    <div class="flex items-center mb-2">
+      <span class="bg-green-100 text-green-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">€</span>
+      <span class="text-gray-800">Costo: ${proveedor.precio}</span>
+    </div>
+
+    <!-- Ubicación -->
+    <div class="flex items-center text-sm text-gray-500 mb-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mr-1" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M10 20s8-8.09 8-13A8 8 0 102 7c0 4.91 8 13 8 13zm0-9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+      </svg>
+      <span>${proveedor.ubicacion}</span>
+    </div>
+
+    <!-- Valoración -->
+    <div class="flex items-center justify-end mt-auto">
+      <span class="text-yellow-400 text-lg">★</span>
+      <span class="ml-1 text-sm text-gray-600">5.0</span>
+      <span class="ml-1 text-sm text-gray-500">Fantástico</span>
+    </div>
+        <!-- Botón para obtener más información -->
+    <div class="mt-4">
+      <button id="infoBtn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center" onclick="getMoreInfo(${proveedor.id})">
+        <span id="btnText">Obtener más información</span>
+        <svg id="spinner" class="hidden ml-2 w-5 h-5 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8l4 4"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>`;
+            chatBox.appendChild(proveedorDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+    }
+
+
+
     const chatBox = document.getElementById('chat-box');
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-btn');
+    const spinner = document.getElementById('spinner');
+    const sendText = document.getElementById('send-text');
+
+    function getMoreInfo(idProveedor) {
+        messageInput.value = `Me puedes brindar más información del proveedor con id ${idProveedor}`;
+        sendButton.click();
+    }
+
     let threadId = ''; // Cambia esto según tu implementación
 
     const thread = "http://chat.makeitrunit.com/index.php?action=thread";
@@ -83,6 +191,7 @@
     }).then(response => response.json()) // Convertir la respuesta a JSON
         .then(data => {
             threadId = data.threadId; // Almacenar el threadId en la variable
+            sendButton.disabled = false;
             console.log('Thread ID recibido:', threadId);
         })
         .catch(error => {
@@ -95,7 +204,10 @@
         const message = messageInput.value;
         if (message.trim() === '') return;
 
-        // Añadir mensaje del usuario al chat
+        sendButton.disabled = true;
+        spinner.style.display = 'inline';
+        sendText.style.display = 'none';
+
         appendMessage('user', message);
 
         const response = await fetch(chat_node, {
@@ -103,23 +215,41 @@
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({threadId: threadId, message: message, action:'message'})
+            body: JSON.stringify({threadId: threadId, message: message, action: 'message'})
         });
 
         const data = await response.json();
-        appendMessage('assistant', data.response.value);
+        let responseText = data.response.value;
+        const jsonBlockRegex = /```json([\s\S]*?)```/gm;
+        let parts = responseText.split(jsonBlockRegex);
 
-        // Limpiar el input
+        parts.forEach((part, index) => {
+            if (index % 2 === 0) {
+                appendMessage('assistant', part);
+            } else {
+                try {
+                    const parsedJSON = JSON.parse(part.trim());
+                    if (Array.isArray(parsedJSON)) {
+                        appendProveedores(parsedJSON);
+                    }
+                } catch (error) {
+                    console.error('Error al analizar el JSON:', error);
+                    appendMessage('assistant', 'Error en el procesamiento del bloque JSON.');
+                }
+            }
+        });
+
         messageInput.value = '';
+        spinner.style.display = 'none';
+        sendText.style.display = 'inline';
+        sendButton.disabled = false;
     });
 
     function appendMessage(role, content) {
         const messageDiv = document.createElement('div');
-
         messageDiv.classList.add('message');
         messageDiv.classList.add(role);
-        messageDiv.innerHTML = marked.parse(content);
-        //messageDiv.textContent = content;
+        messageDiv.innerHTML = content;
         chatBox.appendChild(messageDiv);
         chatBox.scrollTop = chatBox.scrollHeight;
     }

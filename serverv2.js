@@ -5,6 +5,7 @@ const fs = require("fs");
 const axios = require("axios");
 const cors = require('cors');
 const {response} = require("express");
+let intentos = 0;
 
 const openai = new OpenAI({
     apiKey: process.env.API_KEY,
@@ -20,11 +21,21 @@ app.use(express.json()); // Middleware to parse JSON bodies
 let assistantId;
 let pollingInterval;
 
-async function consultarProveedores(categoria, costo, ubicacion, servicio = "") {
+async function consultarProveedores(categoria, costo, ubicacion, servicio = "", limite = 5, pagina = 1) {
     try {
         const apiResponse = await axios.post(process.env.API_PROVIDERS_URL, {
-            categoria: categoria, costo: costo, ubicacion: ubicacion, servicio: servicio,
+            categoria: categoria, costo: costo, ubicacion: ubicacion, servicio: servicio, limite: limite, pagina: pagina
         });
+        return apiResponse.data;
+    } catch (error) {
+        console.error('Error al consultar proveedores:', error);
+        throw new Error('Hubo un error al consultar los proveedores');
+    }
+}
+
+async function masInformacionProveedores(id) {
+    try {
+        const apiResponse = await axios.get(process.env.API_PROVIDERS_URL + `/${id}/more-info`);
         return apiResponse.data;
     } catch (error) {
         console.error('Error al consultar proveedores:', error);
@@ -45,7 +56,6 @@ async function consultarCategorias() {
     }
 }
 
-// Paso 1: Definir las funciones disponibles para el asistente
 const functions = [
     {
         type: "function",
@@ -71,8 +81,16 @@ const functions = [
                         type: "string",
                         description: "Palabra clave del servicio que se busca, por ejemplo: DJ, fotógrafo.",
                     },
+                    limite: {
+                        type: "number",
+                        description: "El limite inicial y recomendado de 5 resultados.",
+                    },
+                    pagina: {
+                        type: "number",
+                        description: "Inicia en la pagina 1",
+                    },
                 },
-                required: ["categoria", "costo", "ubicacion"],
+                required: ["categoria", "costo", "ubicacion", "servicio", "limite", "pagina"],
             },
         }
     },
@@ -87,17 +105,32 @@ const functions = [
                 required: []
             }
         }
+    },
+    {
+        type: "function",
+        function: {
+            name: "mas_informacion_proveedor",
+            description: "Mas informacion acerca de un proveedor a traves de su id.",
+            parameters: {
+                type: "object",
+                properties: {
+                    id: {
+                        type: "number",
+                        description: "id de proveedor. Ejemplo proveedor id 1",
+                    },
+                },
+                required: ['id']
+            }
+        }
     }
 ];
 
-// Set up a Thread
 async function createThread() {
     const thread = await openai.beta.threads.create();
     return thread;
 }
 
 async function addMessage(threadId, message) {
-    // El mensaje del usuario se envía al asistente
     return openai.beta.threads.messages.create(threadId, {
         role: "user",
         content: message,
@@ -107,7 +140,10 @@ async function addMessage(threadId, message) {
 async function runAssistant(threadId) {
     if (assistantId === undefined) {
         let assistant = await openai.beta.assistants.create({
-            "instructions": "Te encargaras de ayudarme a organizar bodas, interactuando con el cliente, donde se te preguntara por catgeorias, servicios y costos de distintos proveedores que podras consultar",
+            "instructions": "Te encargaras de ayudarme a organizar bodas, interactuando con el cliente, " +
+                "donde se te preguntara por catgeorias, servicios y costos de distintos proveedores que podras consultar." +
+                "El formato Cuando encuentres proveedores debe ser json: [{\"id\": \"id del proveedor\",\"nombre\": \"nombre del proveedor\", \"categoria\": \"categoría\", \"ubicacion\": \"ubicación\", \"precio\": precio, \"imagen\": \"url de la imagen\"}]"
+            ,
             "model": "gpt-4o",
             "tools": functions,
 
@@ -125,96 +161,127 @@ async function runAssistant(threadId) {
 }
 
 async function checkingStatus(res, threadId, runId) {
-    const runObject = await openai.beta.threads.runs.retrieve(threadId, runId);
+    console.log(intentos);
+    intentos++;
 
-    const status = runObject.status;
-    console.log(status)
-    if (status === "completed") {
-        clearInterval(pollingInterval);
+    try {
+        const runObject = await openai.beta.threads.runs.retrieve(threadId, runId);
+        const status = runObject.status;
+        console.log(status);
 
-        const messagesList = await openai.beta.threads.messages.list(threadId);
+        if (status === "completed") {
+            clearInterval(pollingInterval);
 
-        const {data: messages} = messagesList.body;
-        const response = messages[0]?.content[0]?.text;
+            const messagesList = await openai.beta.threads.messages.list(threadId);
+            const {data: messages} = messagesList.body;
+            const response = messages[0]?.content[0]?.text;
 
-        if (!res.headersSent) {
-            res.json({response});
-        }
-    } else if (status === 'requires_action') {
+            if (!res.headersSent) {
+                res.json({response});
+            }
+        } else if (status === 'requires_action') {
+            if (runObject.required_action.type === 'submit_tool_outputs') {
+                const tool_calls = runObject.required_action.submit_tool_outputs.tool_calls;
 
-        if (runObject.required_action.type === 'submit_tool_outputs') {
-            const tool_calls = await runObject.required_action.submit_tool_outputs.tool_calls
+                for (const tool_call of tool_calls) {
+                    if (tool_call.function.name === "listar_categorias_proveedores") {
+                        const categoriasData = await consultarCategorias();
+                        const run = await openai.beta.threads.runs.submitToolOutputs(
+                            threadId,
+                            runId,
+                            {
+                                tool_outputs: [
+                                    {
+                                        tool_call_id: tool_call.id,
+                                        output: JSON.stringify(categoriasData)
+                                    },
+                                ],
+                            }
+                        );
+                        console.log('Run after submit tool outputs: ' + run.status);
+                    } else if (tool_call.function.name === "consultar_proveedores") {
+                        const {
+                            categoria,
+                            costo,
+                            ubicacion,
+                            servicio,
+                            limite,
+                            pagina
+                        } = JSON.parse(tool_call.function.arguments);
 
+                        const proveedoresData = await consultarProveedores(categoria, costo, ubicacion, servicio, limite, pagina);
+                        const run = await openai.beta.threads.runs.submitToolOutputs(
+                            threadId,
+                            runId,
+                            {
+                                tool_outputs: [
+                                    {
+                                        tool_call_id: tool_call.id,
+                                        output: JSON.stringify(proveedoresData)
+                                    },
+                                ],
+                            }
+                        );
+                        console.log('Run after submit tool outputs: ' + run.status);
+                    } else if (tool_call.function.name === "mas_informacion_proveedor") {
+                        const {
+                            id
+                        } = JSON.parse(tool_call.function.arguments);
 
-            for (const tool_call of tool_calls) {
-                if (tool_call.function.name === "listar_categorias_proveedores") {
-                    const categoriasData = await consultarCategorias();
-                    const run = await openai.beta.threads.runs.submitToolOutputs(
-                        threadId,
-                        runId,
-                        {
-                            tool_outputs: [
-                                {
-                                    tool_call_id: tool_call.id,
-                                    output: JSON.stringify(categoriasData)
-                                },
-                            ],
-                        }
-                    )
-                    console.log('Run after submit tool outputs: ' + run.status)
-                }
-                if (tool_call.function.name === "consultar_proveedores") {
-                    const {categoria, costo, ubicacion, servicio} = JSON.parse(tool_call.function.arguments);
-
-                    const categoriasData = await consultarProveedores(categoria, costo, ubicacion, servicio);
-                    const run = await openai.beta.threads.runs.submitToolOutputs(
-                        threadId,
-                        runId,
-                        {
-                            tool_outputs: [
-                                {
-                                    tool_call_id: tool_call.id,
-                                    output: JSON.stringify(categoriasData)
-                                },
-                            ],
-                        }
-                    )
-                    console.log('Run after submit tool outputs: ' + run.status)
+                        const proveedoresData = await masInformacionProveedores(id);
+                        const run = await openai.beta.threads.runs.submitToolOutputs(
+                            threadId,
+                            runId,
+                            {
+                                tool_outputs: [
+                                    {
+                                        tool_call_id: tool_call.id,
+                                        output: JSON.stringify(proveedoresData)
+                                    },
+                                ],
+                            }
+                        );
+                    }
                 }
             }
+        } else if (status === 'in_progress') {
+            console.log('El proceso está en progreso, volviendo a comprobar el estado...');
+            setTimeout(async () => {
+                await checkingStatus(res, threadId, runId);
+            }, 3000);
+
+
+        } else if (status === 'failed') {
+            if (!res.headersSent) {
+                clearInterval(pollingInterval);
+                res.json({response: 'Puedes volver a realizar la pregunta por favor[2]'});
+            }
+        } else {
+            if (!res.headersSent) {
+                clearInterval(pollingInterval);
+                res.json({response: 'Estado no manejado'});
+            }
         }
-    } else if (status === 'in_progress') {
-        console.log('El proceso está en progreso, volviendo a comprobar el estado...');
-        setTimeout(async () => {
-            await checkingStatus(res, threadId, runId);
-        }, 3000);
-    } else if (status === 'failed') {
+    } catch (error) {
+        console.error('Error al verificar el estado: ', error);
         if (!res.headersSent) {
-            res.json({response: 'Puedes volver a realizar la pregunta por favor'});
-        }
-    } else {
-        if (!res.headersSent) {
-            res.json({response: 'Estado no manejado'});
+            clearInterval(pollingInterval);
+            res.json({response: 'Ocurrió un error al procesar la solicitud.'});
         }
     }
 }
 
-// Open a new thread
 app.get("/thread", (req, res) => {
     createThread().then((thread) => {
         res.json({threadId: thread.id});
     });
 });
 
-// POST para recibir el mensaje del usuario
 app.post("/message", (req, res) => {
     const {message, threadId} = req.body;
     addMessage(threadId, message).then(() => {
-
         runAssistant(threadId).then((run) => {
             const runId = run.id;
-
-            // Check the status
             pollingInterval = setInterval(() => {
                 checkingStatus(res, threadId, runId);
             }, 5000);
@@ -222,7 +289,7 @@ app.post("/message", (req, res) => {
     });
 });
 
-// Start the server
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
