@@ -161,7 +161,7 @@ function consultarCategorias($pdo)
 
 function createThread($openai)
 {
-    return $openai->beta->threads()->create();
+    return $openai->threads()->create([]);
 }
 
 function addMessage($openai, $threadId, $message)
