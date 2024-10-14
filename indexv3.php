@@ -196,7 +196,7 @@ function checkingStatus($openai, $threadId, $runId)
         $requiredAction = $runObject->requiredAction;
 
         if ($requiredAction->type === 'submit_tool_outputs') {
-            foreach ($requiredAction->submit_tool_outputs->tool_calls as $tool_call) {
+            foreach ($requiredAction->submitToolOutputs->toolCalls as $tool_call) {
                 if ($tool_call->function->name === "listar_categorias_proveedores") {
                     $pdo = connectToDatabase();
                     $categoriasData = consultarCategorias($pdo);
@@ -245,8 +245,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode($json, true);
 
     if ($data['action'] === 'message') {
-        $pdo = connectToDatabase();
-
         $message = $data['message'];
         $threadId = $data['threadId'];
 
