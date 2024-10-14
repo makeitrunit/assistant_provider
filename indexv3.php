@@ -252,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $runResponse = runAssistant($openai, $threadId);
         $runId = $runResponse->id;
 
-        sleep(10);
+        sleep(15);
         $response = checkingStatus($openai, $threadId, $runId);
 
         header('Content-Type: application/json');
