@@ -200,7 +200,7 @@ function checkingStatus($openai, $threadId, $runId)
                 if ($tool_call->function->name === "listar_categorias_proveedores") {
                     $pdo = connectToDatabase();
                     $categoriasData = consultarCategorias($pdo);
-                    $openai->beta->threads()->runs()->submitToolOutputs($threadId, $runId, [
+                    $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
                         'tool_outputs' => [
                             [
                                 'tool_call_id' => $tool_call->id,
@@ -212,7 +212,7 @@ function checkingStatus($openai, $threadId, $runId)
                     $pdo = connectToDatabase();
                     $args = json_decode($tool_call->function->arguments, true);
                     $categoriasData = consultarProveedores($pdo, $args['categoria'], $args['costo'], $args['ubicacion'], $args['servicio']);
-                    $openai->beta->threads()->runs()->submitToolOutputs($threadId, $runId, [
+                    $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
                         'tool_outputs' => [
                             [
                                 'tool_call_id' => $tool_call->id,
@@ -224,7 +224,7 @@ function checkingStatus($openai, $threadId, $runId)
                     $pdo = connectToDatabase();
                     $args = json_decode($tool_call->function->arguments, true);
                     $proveedorData = masInformacionProveedores($pdo, $args['id']);
-                    $openai->beta->threads()->runs()->submitToolOutputs($threadId, $runId, [
+                    $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
                         'tool_outputs' => [
                             [
                                 'tool_call_id' => $tool_call->id,
