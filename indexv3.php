@@ -182,62 +182,65 @@ function runAssistant($openai, $threadId)
 
 function checkingStatus($openai, $threadId, $runId)
 {
-    $runObject = $openai->threads()->runs()->retrieve($threadId, $runId);
-    $status = $runObject->status;
+    while (true) {
+        $runObject = $openai->threads()->runs()->retrieve($threadId, $runId);
+        $status = $runObject->status;
 
-    if ($status === 'completed') {
-        $messagesList = $openai->threads()->messages()->list($threadId);
-        $messages = $messagesList->data;
+        if ($status === 'completed') {
+            $messagesList = $openai->threads()->messages()->list($threadId);
+            $messages = $messagesList->data;
 
-        if (!empty($messages)) {
-            return $messages[0]->content[0]['text'];
-        }
-    } elseif ($status === 'requires_action') {
-        $requiredAction = $runObject->requiredAction;
+            if (!empty($messages)) {
+                return $messages[0]->content[0]['text'];
+            } else {
+                return 'No hay mensajes disponibles.';
+            }
+        } elseif ($status === 'requires_action') {
+            $requiredAction = $runObject->requiredAction;
 
-        if ($requiredAction->type === 'submit_tool_outputs') {
-            foreach ($requiredAction->submitToolOutputs->toolCalls as $tool_call) {
-                if ($tool_call->function->name === "listar_categorias_proveedores") {
-                    $pdo = connectToDatabase();
-                    $categoriasData = consultarCategorias($pdo);
-                    $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
-                        'tool_outputs' => [
-                            [
-                                'tool_call_id' => $tool_call->id,
-                                'output' => json_encode($categoriasData),
+            if ($requiredAction->type === 'submit_tool_outputs') {
+                foreach ($requiredAction->submitToolOutputs->toolCalls as $tool_call) {
+                    if ($tool_call->function->name === "listar_categorias_proveedores") {
+                        $pdo = connectToDatabase();
+                        $categoriasData = consultarCategorias($pdo);
+                        $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
+                            'tool_outputs' => [
+                                [
+                                    'tool_call_id' => $tool_call->id,
+                                    'output' => json_encode($categoriasData),
+                                ],
                             ],
-                        ],
-                    ]);
-                } elseif ($tool_call->function->name === "consultar_proveedores") {
-                    $pdo = connectToDatabase();
-                    $args = json_decode($tool_call->function->arguments, true);
-                    $categoriasData = consultarProveedores($pdo, $args['categoria'], $args['costo'], $args['ubicacion'], $args['servicio']);
-                    $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
-                        'tool_outputs' => [
-                            [
-                                'tool_call_id' => $tool_call->id,
-                                'output' => json_encode($categoriasData),
+                        ]);
+                    } elseif ($tool_call->function->name === "consultar_proveedores") {
+                        $pdo = connectToDatabase();
+                        $args = json_decode($tool_call->function->arguments, true);
+                        $categoriasData = consultarProveedores($pdo, $args['categoria'], $args['costo'], $args['ubicacion'], $args['servicio']);
+                        $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
+                            'tool_outputs' => [
+                                [
+                                    'tool_call_id' => $tool_call->id,
+                                    'output' => json_encode($categoriasData),
+                                ],
                             ],
-                        ],
-                    ]);
-                } elseif ($tool_call->function->name === "mas_informacion_proveedor") {
-                    $pdo = connectToDatabase();
-                    $args = json_decode($tool_call->function->arguments, true);
-                    $proveedorData = masInformacionProveedores($pdo, $args['id']);
-                    $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
-                        'tool_outputs' => [
-                            [
-                                'tool_call_id' => $tool_call->id,
-                                'output' => json_encode($proveedorData),
+                        ]);
+                    } elseif ($tool_call->function->name === "mas_informacion_proveedor") {
+                        $pdo = connectToDatabase();
+                        $args = json_decode($tool_call->function->arguments, true);
+                        $proveedorData = masInformacionProveedores($pdo, $args['id']);
+                        $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
+                            'tool_outputs' => [
+                                [
+                                    'tool_call_id' => $tool_call->id,
+                                    'output' => json_encode($proveedorData),
+                                ],
                             ],
-                        ],
-                    ]);
+                        ]);
+                    }
                 }
             }
         }
+        sleep(5);
     }
-
-    return null;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -251,8 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         addMessage($openai, $threadId, $message);
         $runResponse = runAssistant($openai, $threadId);
         $runId = $runResponse->id;
-
-        sleep(15);
+        
         $response = checkingStatus($openai, $threadId, $runId);
 
         header('Content-Type: application/json');
