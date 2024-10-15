@@ -202,7 +202,7 @@ function checkingStatus($openai, $threadId, $runId)
 {
     error_log("Verificando el estado del hilo $threadId y ejecución $runId.");
 
-    $intentosMaximos = 6;
+    $intentosMaximos = 10;
     $intentos = 0;
 
     while ($intentos < $intentosMaximos) {
