@@ -223,7 +223,17 @@ function checkingStatus($openai, $threadId, $runId)
             return 'No hay mensajes disponibles.';
         }
 
-        if ($status === 'requires_action') {
+        if ($status === 'failed') {
+            $errorMessage = isset($runObject->error->message) ? $runObject->error->message : 'Error desconocido';
+            error_log("La ejecución ha fallado: " . $errorMessage);
+            return "La ejecución ha fallado: " . $errorMessage;
+        }
+        if ($status === in_array($status, ['in_progress', 'queued'])) {
+            sleep(3);
+            if ($status === 'in_progress') {
+                $intentos++;
+            }
+        } else if ($status === 'requires_action') {
             error_log("La ejecución requiere acción adicional.");
 
             $requiredAction = $runObject->requiredAction;
@@ -273,15 +283,6 @@ function checkingStatus($openai, $threadId, $runId)
                         ]);
                     }
                 }
-            }
-        } elseif ($status === 'failed') {
-            $errorMessage = isset($runObject->error->message) ? $runObject->error->message : 'Error desconocido';
-            error_log("La ejecución ha fallado: " . $errorMessage);
-            return "La ejecución ha fallado: " . $errorMessage;
-        } else if ($status === in_array($status, ['in_progress', 'queued'])) {
-            sleep(3);
-            if ($status === 'in_progress') {
-                $intentos++;
             }
         } else {
             // Registra el error
