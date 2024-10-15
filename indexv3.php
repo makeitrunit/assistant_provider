@@ -276,6 +276,8 @@ function checkingStatus($openai, $threadId, $runId)
             }
         } elseif ($status === 'failed') {
             // Registra el error
+            var_dump($runObject);
+            var_dump($runObject->error);
             $errorMessage = isset($runObject->error->message) ? $runObject->error->message : 'Error desconocido';
             error_log("La ejecución ha fallado: " . $errorMessage);
             return "La ejecución ha fallado: " . $errorMessage;
