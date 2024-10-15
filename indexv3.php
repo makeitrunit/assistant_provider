@@ -286,7 +286,7 @@ function checkingStatus($openai, $threadId, $runId)
             // Registra el error
             $errorMessage = isset($runObject->error->message) ? $runObject->error->message : 'Error desconocido';
             error_log("Estado desconocido: " . $errorMessage);
-            return "Estado desconocido: " . $errorMessage;
+            return "Estado desconocido: " . $status;
         }
     }
 
