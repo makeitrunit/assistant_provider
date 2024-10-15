@@ -91,15 +91,18 @@ function connectToDatabase()
         $dsn = "mysql:host=" . $_ENV['HOST'] . ";dbname=" . $_ENV['DATABASE'];
         $pdo = new PDO($dsn, $_ENV['USER'], $_ENV['PASSWORD']);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        error_log("Conexión a la base de datos exitosa.");
         return $pdo;
     } catch (PDOException $e) {
-        echo "Error de conexión a la base de datos: " . $e->getMessage();
+        error_log("Error de conexión a la base de datos: " . $e->getMessage());
         exit;
     }
 }
 
 function consultarProveedores($pdo, $categoria, $costo, $ubicacion, $servicio = "", $limite = 5, $pagina = 1)
 {
+    error_log("Iniciando consulta de proveedores con los parámetros: categoría=$categoria, costo=$costo, ubicación=$ubicacion, servicio=$servicio");
+
     $sql = "
         SELECT id, nombre, categoria, costo, ubicacion
         FROM proveedores 
@@ -119,14 +122,11 @@ function consultarProveedores($pdo, $categoria, $costo, $ubicacion, $servicio = 
 
     $stmt = $pdo->prepare($sql);
 
-    // Calcular el offset para paginación
     $offset = ($pagina - 1) * $limite;
-
     $categoria = "%$categoria%";
     $ubicacion = "%$ubicacion%";
     $servicio = "%$servicio%";
 
-    // Vincular parámetros
     $stmt->bindParam(':categoria', $categoria, PDO::PARAM_STR);
     $stmt->bindParam(':costo', $costo, PDO::PARAM_STR);
     $stmt->bindParam(':ubicacion', $ubicacion, PDO::PARAM_STR);
@@ -137,35 +137,53 @@ function consultarProveedores($pdo, $categoria, $costo, $ubicacion, $servicio = 
     }
 
     $stmt->execute();
+    $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Log del número de registros devueltos
+    $count = count($resultados);
+    error_log("Consulta completada. Número de proveedores devueltos: $count.");
+
+    return $resultados;
 }
 
 function masInformacionProveedores($pdo, $id)
 {
+    error_log("Consultando información del proveedor con ID $id.");
+
     $sql = "SELECT * FROM proveedores WHERE id = :id";
     $stmt = $pdo->prepare($sql);
     $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+
+    $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    error_log("Consulta de proveedor $id completada.");
+    return $resultado;
 }
 
-// Consulta categorías disponibles
 function consultarCategorias($pdo)
 {
+    error_log("Consultando categorías de proveedores.");
+
     $sql = "SELECT categoria FROM categorias_proveedores";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    error_log("Consulta de categorías completada. Número de categorías devueltas: " . count($categorias));
+
+    return $categorias;
 }
 
 function createThread($openai)
 {
+    error_log("Creando un nuevo hilo para la interacción.");
     return $openai->threads()->create([]);
 }
 
 function addMessage($openai, $threadId, $message)
 {
+    error_log("Añadiendo mensaje al hilo $threadId. Mensaje: $message");
     return $openai->threads()->messages()->create($threadId, [
         'role' => 'user',
         'content' => $message,
@@ -174,7 +192,7 @@ function addMessage($openai, $threadId, $message)
 
 function runAssistant($openai, $threadId)
 {
-
+    error_log("Ejecutando el asistente en el hilo $threadId.");
     return $openai->threads()->runs()->create($threadId, [
         'assistant_id' => $_ENV['ASSISTANTS_ID'],
     ]);
@@ -182,11 +200,16 @@ function runAssistant($openai, $threadId)
 
 function checkingStatus($openai, $threadId, $runId)
 {
+    error_log("Verificando el estado del hilo $threadId y ejecución $runId.");
+
     while (true) {
         $runObject = $openai->threads()->runs()->retrieve($threadId, $runId);
         $status = $runObject->status;
 
+        error_log("Estado actual de la ejecución: $status");
+
         if ($status === 'completed') {
+            error_log("Ejecución completada para el hilo $threadId.");
             $messagesList = $openai->threads()->messages()->list($threadId);
             $messages = $messagesList->data;
 
@@ -196,13 +219,17 @@ function checkingStatus($openai, $threadId, $runId)
                 return 'No hay mensajes disponibles.';
             }
         } elseif ($status === 'requires_action') {
-            $requiredAction = $runObject->requiredAction;
+            error_log("La ejecución requiere acción adicional.");
 
+            $requiredAction = $runObject->requiredAction;
             if ($requiredAction->type === 'submit_tool_outputs') {
                 foreach ($requiredAction->submitToolOutputs->toolCalls as $tool_call) {
+                    error_log("Procesando función: " . $tool_call->function->name);
+
                     if ($tool_call->function->name === "listar_categorias_proveedores") {
                         $pdo = connectToDatabase();
                         $categoriasData = consultarCategorias($pdo);
+                        error_log("Enviando las categorías al asistente.");
                         $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
                             'tool_outputs' => [
                                 [
@@ -215,6 +242,7 @@ function checkingStatus($openai, $threadId, $runId)
                         $pdo = connectToDatabase();
                         $args = json_decode($tool_call->function->arguments, true);
                         $categoriasData = consultarProveedores($pdo, $args['categoria'], $args['costo'], $args['ubicacion'], $args['servicio']);
+                        error_log("Enviando proveedores filtrados al asistente.");
                         $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
                             'tool_outputs' => [
                                 [
@@ -227,6 +255,7 @@ function checkingStatus($openai, $threadId, $runId)
                         $pdo = connectToDatabase();
                         $args = json_decode($tool_call->function->arguments, true);
                         $proveedorData = masInformacionProveedores($pdo, $args['id']);
+                        error_log("Enviando información adicional del proveedor al asistente.");
                         $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
                             'tool_outputs' => [
                                 [
