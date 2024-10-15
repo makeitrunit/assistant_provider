@@ -228,7 +228,7 @@ function checkingStatus($openai, $threadId, $runId)
             error_log("La ejecución ha fallado: " . $errorMessage);
             return "La ejecución ha fallado: " . $errorMessage;
         }
-        if ($status === in_array($status, ['in_progress', 'queued'])) {
+        if (in_array($status, ['in_progress', 'queued'])) {
             sleep(3);
             if ($status === 'in_progress') {
                 $intentos++;
