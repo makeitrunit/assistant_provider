@@ -202,7 +202,7 @@ function checkingStatus($openai, $threadId, $runId)
 {
     error_log("Verificando el estado del hilo $threadId y ejecución $runId.");
 
-    $intentosMaximos = 5;
+    $intentosMaximos = 6;
     $intentos = 0;
 
     while ($intentos < $intentosMaximos) {
@@ -281,7 +281,7 @@ function checkingStatus($openai, $threadId, $runId)
             $errorMessage = isset($runObject->error->message) ? $runObject->error->message : 'Error desconocido';
             error_log("La ejecución ha fallado: " . $errorMessage);
             return "La ejecución ha fallado: " . $errorMessage;
-        } else if($status === 'in_progress') {
+        } else if($status === in_array($status, ['in_progress', 'queued'])) {
             sleep(3);
             $intentos++;
         }else{
