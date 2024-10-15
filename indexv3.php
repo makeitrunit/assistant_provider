@@ -241,13 +241,15 @@ function checkingStatus($openai, $threadId, $runId)
                     } elseif ($tool_call->function->name === "consultar_proveedores") {
                         $pdo = connectToDatabase();
                         $args = json_decode($tool_call->function->arguments, true);
-                        $categoriasData = consultarProveedores($pdo, $args['categoria'], $args['costo'], $args['ubicacion'], $args['servicio']);
-                        error_log("Enviando proveedores filtrados al asistente.");
+                        error_log("Enviando argumentos de busqueda.".$args['categoria'], $args['costo'], $args['ubicacion'], $args['servicio']);
+                        $proveedoresData = consultarProveedores($pdo, $args['categoria'], $args['costo'], $args['ubicacion'], $args['servicio']);
+
+                        error_log("Enviando proveedores filtrados al asistente. Cantidad: registros". count($proveedoresData));
                         $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
                             'tool_outputs' => [
                                 [
                                     'tool_call_id' => $tool_call->id,
-                                    'output' => json_encode($categoriasData),
+                                    'output' => json_encode($proveedoresData),
                                 ],
                             ],
                         ]);
