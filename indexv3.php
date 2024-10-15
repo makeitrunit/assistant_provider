@@ -239,7 +239,7 @@ function checkingStatus($openai, $threadId, $runId)
                 }
             }
         }
-        sleep(5);
+        sleep(3);
     }
 }
 
@@ -254,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         addMessage($openai, $threadId, $message);
         $runResponse = runAssistant($openai, $threadId);
         $runId = $runResponse->id;
-        
+
         $response = checkingStatus($openai, $threadId, $runId);
 
         header('Content-Type: application/json');
