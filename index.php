@@ -62,6 +62,7 @@ function addMessage($openai, $pdo, $threadId, $message)
 
 function runAssistant($openai, $threadId, $assistantId)
 {
+
     return $openai->threads()->runs()->create($threadId, [
         'assistant_id' => $assistantId,
     ]);

@@ -181,8 +181,8 @@
 
     let threadId = ''; // Cambia esto según tu implementación
 
-    const thread = "http://chat.makeitrunit.com/index.php?action=thread";
-    const thread_node = "http://localhost:3000/thread";
+    const thread_node = "http://chat.makeitrunit.com/indexv3.php?action=thread";
+    const thread = "http://localhost:3000/thread";
     fetch(thread_node, {
         method: 'GET',
         headers: {
@@ -198,8 +198,8 @@
             console.error('Error al crear el hilo:', error);
         });
 
-    const chat = "http://chat.makeitrunit.com/index.php";
-    const chat_node = "http://localhost:3000/message";
+    const chat_node = "http://chat.makeitrunit.com/indexv3.php?action=message";
+    const chat = "http://localhost:3000/message";
     sendButton.addEventListener('click', async () => {
         const message = messageInput.value;
         if (message.trim() === '') return;

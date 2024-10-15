@@ -101,7 +101,7 @@ function connectToDatabase()
 function consultarProveedores($pdo, $categoria, $costo, $ubicacion, $servicio = "", $limite = 5, $pagina = 1)
 {
     $sql = "
-        SELECT * 
+        SELECT id, nombre, categoria, costo, ubicacion
         FROM proveedores 
         WHERE 
             categoria LIKE :categoria 
