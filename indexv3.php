@@ -275,16 +275,15 @@ function checkingStatus($openai, $threadId, $runId)
                 }
             }
         } elseif ($status === 'failed') {
-            // Registra el error
-            var_dump($runObject);
-            var_dump($runObject->error);
             $errorMessage = isset($runObject->error->message) ? $runObject->error->message : 'Error desconocido';
             error_log("La ejecución ha fallado: " . $errorMessage);
             return "La ejecución ha fallado: " . $errorMessage;
-        } else if($status === in_array($status, ['in_progress', 'queued'])) {
+        } else if ($status === in_array($status, ['in_progress', 'queued'])) {
             sleep(3);
-            $intentos++;
-        }else{
+            if ($status === 'in_progress') {
+                $intentos++;
+            }
+        } else {
             // Registra el error
             $errorMessage = isset($runObject->error->message) ? $runObject->error->message : 'Error desconocido';
             error_log("Estado desconocido: " . $errorMessage);
