@@ -5,13 +5,11 @@ module.exports = (sequelize, Sequelize) => {
         }
     }, {
         timestamps: false,
-        freezeTableName: true, // Evitar que Sequelize pluralice el nombre de la tabla
-        // Configuración para evitar el uso de 'id'
-        primaryKey: false, // No hay clave primaria
-        hasPrimaryKeys: false, // Indica que no tiene claves primarias
-        // Definición de las opciones de la consulta
+        freezeTableName: true,
+        primaryKey: false,
+        hasPrimaryKeys: false,
         defaultScope: {
-            attributes: { exclude: ['id'] }, // Asegúrate de excluir la columna id
+            attributes: { exclude: ['id'] },
         }
     });
 };

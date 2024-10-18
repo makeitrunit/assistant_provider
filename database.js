@@ -18,6 +18,7 @@ const db = {
 };
 
 db.providers = require("./providers.model.js")(sequelize, Sequelize);
+db.providers_images = require("./providers_images.model.js")(sequelize, Sequelize);
 db.categories = require("./categories.model.js")(sequelize, Sequelize);
 
 module.exports = db;

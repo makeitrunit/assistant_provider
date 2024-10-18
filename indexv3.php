@@ -15,81 +15,11 @@ $assistantId = $_ENV['ASSISTANTS_ID'];
 $intentos = 0;
 
 
-const CONSULTAR_PROVEEDORES = [
-    'type' => 'function',
-    'function' => [
-        'name' => 'consultar_proveedores',
-        'description' => 'Consulta proveedores filtrando por categoría, costo, ubicación, y servicio.',
-        'parameters' => [
-            'type' => 'object',
-            'properties' => [
-                'categoria' => [
-                    'type' => 'string',
-                    'description' => 'La categoría de los proveedores, por ejemplo: eventos, música, catering, dj, Viaje de novios, Belleza Novias, Vídeo.',
-                ],
-                'costo' => [
-                    'type' => 'number',
-                    'description' => 'El costo máximo que el cliente está dispuesto a pagar.',
-                ],
-                'ubicacion' => [
-                    'type' => 'string',
-                    'description' => 'La ubicación donde se requiere el servicio. Por ejemplo: Barcelona, Madrid, Sevilla.',
-                ],
-                'servicio' => [
-                    'type' => 'string',
-                    'description' => 'Palabra clave del servicio que se busca, por ejemplo: DJ, fotógrafo. Puede estar vacío.',
-                ],
-                'limite' => [
-                    'type' => 'integer',
-                    'description' => 'Número de proveedores a devolver por página.',
-                ],
-                'pagina' => [
-                    'type' => 'integer',
-                    'description' => 'Página actual para la paginación.',
-                ],
-            ],
-            'required' => ['categoria', 'costo', 'ubicacion']
-        ]
-    ]
-];
-
-const LISTAR_CATEGORIAS = [
-    'type' => 'function',
-    'function' => [
-        'name' => 'listar_categorias_proveedores',
-        'description' => 'Lista todas las categorías de proveedores disponibles.',
-        'parameters' => [
-            'type' => 'object',
-            'properties' => [],
-            'required' => []
-        ]
-    ]
-];
-
-const MAS_INFORMACION = [
-    'type' => 'function',
-    'function' => [
-        'name' => 'mas_informacion_proveedor',
-        'description' => 'Obtiene más información sobre un proveedor específico, incluyendo su descripción, valoraciones y otros detalles.',
-        'parameters' => [
-            'type' => 'object',
-            'properties' => [
-                'id' => [
-                    'type' => 'integer',
-                    'description' => 'El ID del proveedor del cual se desea obtener más información.',
-                ]
-            ],
-            'required' => ['id']
-        ]
-    ]
-];
-
-
 function connectToDatabase()
 {
     try {
-        $dsn = "mysql:host=" . $_ENV['HOST'] . ";dbname=" . $_ENV['DATABASE'];
-        $pdo = new PDO($dsn, $_ENV['USER'], $_ENV['PASSWORD']);
+        $dsn = "mysql:host=" . $_ENV['HOST'] . ";dbname=" . $_ENV['DATABASE']. ";charset=utf8mb4";
+        $pdo = new PDO($dsn, $_ENV['USERNAME'], $_ENV['PASSWORD']);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         error_log("Conexión a la base de datos exitosa.");
         return $pdo;
@@ -104,12 +34,16 @@ function consultarProveedores($pdo, $categoria, $costo, $ubicacion, $servicio = 
     error_log("Iniciando consulta de proveedores con los parámetros: categoría=$categoria, costo=$costo, ubicación=$ubicacion, servicio=$servicio");
 
     $sql = "
-        SELECT id, nombre, categoria, costo, ubicacion
-        FROM proveedores 
+        SELECT proveedores.id, nombre, categoria, costo, ubicacion, pi.url as imagen
+        FROM proveedores
+        LEFT JOIN proveedores_imagenes AS pi
+        ON pi.proveedores_id = proveedores.id
         WHERE 
-            categoria LIKE :categoria 
+            MATCH(categoria)
+            AGAINST(:categoria WITH QUERY EXPANSION)
             AND CAST(REGEXP_REPLACE(costo, '[^0-9.]', '') AS DECIMAL) <= :costo 
-            AND ubicacion LIKE :ubicacion
+            AND MATCH(ubicacion)
+            AGAINST(:ubicacion WITH QUERY EXPANSION)
     ";
 
     if (!empty($servicio)) {
@@ -137,13 +71,7 @@ function consultarProveedores($pdo, $categoria, $costo, $ubicacion, $servicio = 
     }
 
     $stmt->execute();
-    $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Log del número de registros devueltos
-    $count = count($resultados);
-    error_log("Consulta completada. Número de proveedores devueltos: $count.");
-
-    return $resultados;
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 function masInformacionProveedores($pdo, $id)
@@ -219,14 +147,13 @@ function checkingStatus($openai, $threadId, $runId)
             if (!empty($messages)) {
                 return $messages[0]->content[0]['text'];
             }
-
-            return 'No hay mensajes disponibles.';
+            return ['value' => "No hay mensajes nuevos disponibles. Intente nuevamente"];
         }
 
         if ($status === 'failed') {
             $errorMessage = isset($runObject->error->message) ? $runObject->error->message : 'Error desconocido';
             error_log("La ejecución ha fallado: " . $errorMessage);
-            return "La ejecución ha fallado: " . $errorMessage;
+            return ['value' => "La ejecución ha fallado:".$errorMessage];
         }
         if (in_array($status, ['in_progress', 'queued'])) {
             sleep(3);
@@ -243,13 +170,20 @@ function checkingStatus($openai, $threadId, $runId)
 
                     if ($tool_call->function->name === "listar_categorias_proveedores") {
                         $pdo = connectToDatabase();
+
                         $categoriasData = consultarCategorias($pdo);
+
+                        if (is_bool($categoriasData)) {
+                            error_log("Error obteniendo datos de db [1].");
+                            return ['value' => "Error obteniendo datos de db [1]"];
+                        }
+
                         error_log("Enviando las categorías al asistente.");
                         $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
                             'tool_outputs' => [
                                 [
                                     'tool_call_id' => $tool_call->id,
-                                    'output' => json_encode($categoriasData),
+                                    'output' => json_encode($categoriasData, JSON_UNESCAPED_UNICODE),
                                 ],
                             ],
                         ]);
@@ -259,12 +193,16 @@ function checkingStatus($openai, $threadId, $runId)
                         error_log("Enviando argumentos de busqueda.".$args['categoria'], $args['costo'], $args['ubicacion'], $args['servicio']);
                         $proveedoresData = consultarProveedores($pdo, $args['categoria'], $args['costo'], $args['ubicacion'], $args['servicio']);
 
+                        if (is_bool($proveedoresData)) {
+                            error_log("Error obteniendo datos de db [2].");
+                            return ['value' => "Error obteniendo datos de db [2]"];
+                        }
                         error_log("Enviando proveedores filtrados al asistente. Cantidad: registros". count($proveedoresData));
                         $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
                             'tool_outputs' => [
                                 [
                                     'tool_call_id' => $tool_call->id,
-                                    'output' => json_encode($proveedoresData),
+                                    'output' => json_encode($proveedoresData, JSON_UNESCAPED_UNICODE),
                                 ],
                             ],
                         ]);
@@ -272,12 +210,16 @@ function checkingStatus($openai, $threadId, $runId)
                         $pdo = connectToDatabase();
                         $args = json_decode($tool_call->function->arguments, true);
                         $proveedorData = masInformacionProveedores($pdo, $args['id']);
+                        if (is_bool($proveedorData)) {
+                            error_log("Error obteniendo datos de db [3].");
+                            return ['value' => "Error obteniendo datos de db [3]"];
+                        }
                         error_log("Enviando información adicional del proveedor al asistente.");
                         $openai->threads()->runs()->submitToolOutputs($threadId, $runId, [
                             'tool_outputs' => [
                                 [
                                     'tool_call_id' => $tool_call->id,
-                                    'output' => json_encode($proveedorData),
+                                    'output' => json_encode($proveedorData, JSON_UNESCAPED_UNICODE),
                                 ],
                             ],
                         ]);
@@ -285,16 +227,15 @@ function checkingStatus($openai, $threadId, $runId)
                 }
             }
         } else {
-            // Registra el error
             $errorMessage = isset($runObject->error->message) ? $runObject->error->message : 'Error desconocido';
             error_log("Estado desconocido: " . $errorMessage);
-            return "Estado desconocido: " . $status;
+            return ['value' => "Estado desconocido sin manejar".$status];
         }
     }
 
     if ($intentos === $intentosMaximos) {
         error_log("Se alcanzó el límite de intentos sin completar la ejecución.");
-        return 'Tiempo de espera superado el limite de intentos.';
+        return ['value' => "Tiempo de espera superado el limite de intentos, intente nuevamente"];
     }
 }
 

@@ -117,8 +117,7 @@
 <div class="w-full mx-auto bg-white shadow-md rounded-lg overflow-hidden flex m-4">
   <!-- Image -->
   <div class="w-2/5">
-    <img class="h-full w-full object-cover" src="https://via.placeholder.com/150" alt="Proveedor Imagen">
-    ${proveedor.imagen}
+    <img class="h-full w-full object-cover" src="${proveedor.imagen}" alt="Proveedor Imagen">
   </div>
 
   <!-- Content -->
@@ -179,18 +178,17 @@
         sendButton.click();
     }
 
-    let threadId = ''; // Cambia esto según tu implementación
+    let threadId = '';
+    const thread_node = "https://buscador.app.tuweddingplanning.com/indexv3.php?action=thread";
 
-    const thread_node = "http://chat.makeitrunit.com/indexv3.php?action=thread";
-    const thread = "http://localhost:3000/thread";
     fetch(thread_node, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
         }
-    }).then(response => response.json()) // Convertir la respuesta a JSON
+    }).then(response => response.json())
         .then(data => {
-            threadId = data.threadId; // Almacenar el threadId en la variable
+            threadId = data.threadId;
             sendButton.disabled = false;
             console.log('Thread ID recibido:', threadId);
         })
@@ -198,8 +196,9 @@
             console.error('Error al crear el hilo:', error);
         });
 
-    const chat_node = "http://chat.makeitrunit.com/indexv3.php?action=message";
-    const chat = "http://localhost:3000/message";
+
+    const chat_node = "https://buscador.app.tuweddingplanning.com/indexv3.php?action=message";
+
     sendButton.addEventListener('click', async () => {
         const message = messageInput.value;
         if (message.trim() === '') return;

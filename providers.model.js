@@ -51,6 +51,6 @@ module.exports = (sequelize, Sequelize) => {
             allowNull: true,
         }
     }, {
-        timestamps: false, // No incluye campos `createdAt` y `updatedAt`
+        timestamps: false,
     });
 };

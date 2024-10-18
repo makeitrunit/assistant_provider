@@ -2,45 +2,51 @@ const fs = require('fs');
 const Papa = require('papaparse');
 const db = require('./database');
 
-// Ruta del archivo CSV
-const filePath = './proveedores_boda.csv';
+const filePath = './proveedores_imagenes.csv';
 
-// Leer el archivo CSV
+//const filePath2 = './proveedores_imagenes.csv';
+
+async function findProvider(nombre) {
+    return await db.providers.findOne({
+        attributes: ['id', 'nombre'],
+        where: {
+            nombre: {[db.Sequelize.Op.like]: `%${nombre}%`}
+        },
+        limit: 1,
+    });
+}
+
+let datos = ""
+let batch = []
+
 fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) {
         console.error('Error leyendo el archivo:', err);
         return;
     }
 
-    // Parsear el contenido del archivo CSV
     Papa.parse(data, {
-        header: true, // Si el archivo tiene encabezados, los incluye en el objeto
-        skipEmptyLines: true, // Ignora las líneas vacías
+        header: false,
+        skipEmptyLines: true,
         complete: async function (results) {
             for (const fila of results.data) {
+                console.log(fila[0])
+                let provider = await findProvider(fila[0]);
 
-                let nombre = fila['Nombre'];
-                let url = fila['Url'];
-                let categoria = fila['Categoría'];
-                let valoracion = fila['Valoración'];
-                let opinion = fila['Opinión'];
-                let datos_interes = fila['Datos de interés'];
-                let ubicacion = fila['Ubicación'];
-                let costo = fila['Costo'];
-                let informacion = fila['Información'];
-                let mas_informacion = fila['Más información'];
-                let preguntas_frecuentes = fila['Preguntas frecuentes'];
+                if (provider) {
+                    batch.push({
+                        proveedores_id: provider.id,
+                        url: fila[1],
+                    })
+                }
 
-                let result = await db.providers.create({
-                    nombre: nombre,
-                    url: url, categoria: categoria, valoracion: valoracion,
-                    opinion: opinion, datos_interes: datos_interes,
-                    ubicacion: ubicacion, costo: costo,
-                    informacion: informacion, mas_informacion: mas_informacion,
-                    preguntas_frecuentes: preguntas_frecuentes,
-                });
+                if (batch.length === 1000) {
+                    let result = await db.providers_images.bulkCreate(batch);
+                    batch = []
+                }
 
             }
+            fs.writeFileSync(filePath2, datos);
         },
         error: function (error) {
             console.error('Error al parsear el archivo CSV:', error);
